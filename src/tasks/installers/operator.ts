@@ -164,7 +164,10 @@ export class OperatorTasks {
       },
       {
         title: 'Create host persisted volume storage class',
-        enabled: flags['host-persisted-volume-class-storage-yaml'],
+        enabled: () => {
+          const yamlPath = flags['host-persisted-volume-class-storage-yaml']
+          return yamlPath && yamlPath !== ''
+        },
         task:  async (_ctx: any, task: any) => {
           task.title = 'Creation host persisted volume storage class...'
           const hostPvClassStorageYamlPath = flags['host-persisted-volume-class-storage-yaml']
