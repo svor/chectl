@@ -113,6 +113,14 @@ export default class Start extends Command {
       char: 'd',
       description: 'Directory to store logs into',
       default: './logs'
+    }),
+    'host-persistent-volume-name': string({
+      description: 'Path to the already created persisted volume in the node host. Parameter is used only when installer is operator.',
+      default: ''
+    }),
+    'host-persisted-volume-class-storage-yaml': string({
+      description: 'Path to a yaml file that defines node host persisted volume storage class. Parameter is used only when installer is operator.',
+      default: ''
     })
   }
 

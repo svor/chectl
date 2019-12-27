@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  **********************************************************************/
 
-import { ApiextensionsV1beta1Api, ApisApi, AppsV1Api, CoreV1Api, CustomObjectsApi, ExtensionsV1beta1Api, KubeConfig, Log, RbacAuthorizationV1Api, V1beta1CustomResourceDefinition, V1beta1IngressList, V1ClusterRole, V1ClusterRoleBinding, V1ConfigMap, V1ConfigMapEnvSource, V1Container, V1DeleteOptions, V1Deployment, V1DeploymentList, V1DeploymentSpec, V1EnvFromSource, V1LabelSelector, V1ObjectMeta, V1PersistentVolumeClaimList, V1Pod, V1PodList, V1PodSpec, V1PodTemplateSpec, V1Role, V1RoleBinding, V1RoleRef, V1Secret, V1ServiceAccount, V1ServiceList, V1Subject } from '@kubernetes/client-node'
+import { ApiextensionsV1beta1Api, ApisApi, AppsV1Api, CoreV1Api, CustomObjectsApi, ExtensionsV1beta1Api, KubeConfig, Log, RbacAuthorizationV1Api, V1beta1CustomResourceDefinition, V1beta1IngressList, V1ClusterRole, V1ClusterRoleBinding, V1ConfigMap, V1ConfigMapEnvSource, V1Container, V1DeleteOptions, V1Deployment, V1DeploymentList, V1DeploymentSpec, V1EnvFromSource, V1LabelSelector, V1ObjectMeta, V1PersistentVolumeClaimList, V1Pod, V1PodList, V1PodSpec, V1PodTemplateSpec, V1Role, V1RoleBinding, V1RoleRef, V1Secret, V1ServiceAccount, V1ServiceList, V1Subject, V1StorageClass, StorageV1Api } from '@kubernetes/client-node'
 import { Context } from '@kubernetes/client-node/dist/config_types'
 import axios from 'axios'
 import { cli } from 'cli-ux'
@@ -756,6 +756,21 @@ export class KubeHelper {
       return await k8sAppsApi.createNamespacedDeployment(namespace, yamlDeployment)
     } catch (e) {
       throw this.wrapK8sClientError(e)
+    }
+  }
+
+  async createHostPersistendVolumeClassFromFile(filePath: string) {
+    const yamlHostPVClass = this.safeLoadFromYamlFile(filePath) as V1StorageClass
+    if (yamlHostPVClass) {
+      const k8sAppsApi = this.kc.makeApiClient(StorageV1Api)
+      try {
+        await k8sAppsApi.createStorageClass(yamlHostPVClass)
+      } catch (e) {
+        throw this.wrapK8sClientError(e)
+      }
+    }
+    if (!yamlHostPVClass.metadata || !yamlHostPVClass.metadata.name) {
+      throw new Error(`Hosted persisted volume storage class from ${filePath} must be specified`)
     }
   }
 
