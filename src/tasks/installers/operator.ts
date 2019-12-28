@@ -170,8 +170,10 @@ export class OperatorTasks {
         },
         task:  async (_ctx: any, task: any) => {
           task.title = 'Creation host persisted volume storage class...'
-          const hostPvClassStorageYamlPath = flags['host-persisted-volume-storage-class-yaml']
-          await kube.createHostPersistendVolumeClassFromFile(hostPvClassStorageYamlPath)
+          const hostPvStorageClassYamlPath = flags['host-persisted-volume-storage-class-yaml']
+          const storageClass = await kube.createHostPersistendVolumeClassFromFile(hostPvStorageClassYamlPath)
+          // set internal flag to stora storage class name
+          flags['host-persisted-volume-storage-class-name'] = storageClass.metadata!.name
         }
       },
       {

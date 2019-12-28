@@ -759,7 +759,7 @@ export class KubeHelper {
     }
   }
 
-  async createHostPersistendVolumeClassFromFile(filePath: string) {
+  async createHostPersistendVolumeClassFromFile(filePath: string): Promise<V1StorageClass> {
     const yamlHostPVClass = this.safeLoadFromYamlFile(filePath) as V1StorageClass
     if (yamlHostPVClass) {
       const k8sAppsApi = this.kc.makeApiClient(StorageV1Api)
@@ -772,6 +772,7 @@ export class KubeHelper {
     if (!yamlHostPVClass.metadata || !yamlHostPVClass.metadata.name) {
       throw new Error(`Hosted persisted volume storage class from ${filePath} must be specified`)
     }
+    return yamlHostPVClass
   }
 
   async replaceDeploymentFromFile(filePath: string, namespace = '', containerImage = '', containerIndex = 0) {
@@ -989,10 +990,10 @@ export class KubeHelper {
         yamlCr.spec.server.devfileRegistryUrl = devfileRegistryUrl
         yamlCr.spec.server.externalDevfileRegistry = true
       }
-      const hostPersistedVolumeStorageClassYaml = flags['host-persisted-volume-storage-class-yaml']
-      if (hostPersistedVolumeStorageClassYaml) {
-        yamlCr.spec.storage.postgresPVCStorageClassName = hostPersistedVolumeStorageClassYaml
-        yamlCr.spec.storage.workspacePVCStorageClassName = hostPersistedVolumeStorageClassYaml
+      const hostPersistedVolumeStorageClassName = flags['host-persisted-volume-storage-class-name']
+      if (hostPersistedVolumeStorageClassName) {
+        yamlCr.spec.storage.postgresPVCStorageClassName = hostPersistedVolumeStorageClassName
+        yamlCr.spec.storage.workspacePVCStorageClassName = hostPersistedVolumeStorageClassName
       }
 
       if (flags.cheimage === DEFAULT_CHE_IMAGE &&
