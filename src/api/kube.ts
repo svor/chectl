@@ -989,6 +989,11 @@ export class KubeHelper {
         yamlCr.spec.server.devfileRegistryUrl = devfileRegistryUrl
         yamlCr.spec.server.externalDevfileRegistry = true
       }
+      const hostPersistedVolumeStorageClassYaml = flags['host-persisted-volume-storage-class-yaml']
+      if (hostPersistedVolumeStorageClassYaml) {
+        yamlCr.spec.storage.postgresPVCStorageClassName = hostPersistedVolumeStorageClassYaml
+        yamlCr.spec.storage.workspacePVCStorageClassName = hostPersistedVolumeStorageClassYaml
+      }
 
       if (flags.cheimage === DEFAULT_CHE_IMAGE &&
         yamlCr.spec.server.cheImageTag !== 'nightly' &&

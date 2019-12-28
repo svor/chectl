@@ -118,7 +118,7 @@ export default class Start extends Command {
       description: 'Path to the already created persisted volume in the node host. Parameter is used only when installer is operator.',
       default: ''
     }),
-    'host-persisted-volume-class-storage-yaml': string({
+    'host-persisted-volume-storage-class-yaml': string({
       description: 'Path to a yaml file that defines node host persisted volume storage class. Parameter is used only when installer is operator.',
       default: ''
     })
