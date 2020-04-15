@@ -13,6 +13,7 @@ bin/chectl-*
 tsconfig.tsbuildinfo
 # k8s templates are added at post-install step
 templates/kubernetes
+templates/docker-registry
 templates/che-operator
 templates/minishift-addon
 templates/cert-manager

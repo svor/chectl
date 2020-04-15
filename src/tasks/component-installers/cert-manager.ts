@@ -96,7 +96,8 @@ export class CertManagerTasks {
 
               // Run CA key pair generation job
               try {
-                await this.kubeHelper.createJob(CA_CERT_GENERATION_JOB_NAME, CA_CERT_GENERATION_JOB_IMAGE, CA_CERT_GENERATION_SERVICE_ACCOUNT_NAME, CERT_MANAGER_NAMESPACE_NAME)
+                const job = await this.kubeHelper.createJobSpec(CA_CERT_GENERATION_JOB_NAME, CA_CERT_GENERATION_JOB_IMAGE, CA_CERT_GENERATION_SERVICE_ACCOUNT_NAME)
+                await this.kubeHelper.createJob(CERT_MANAGER_NAMESPACE_NAME, job)
                 await this.kubeHelper.waitJob(CA_CERT_GENERATION_JOB_NAME, CERT_MANAGER_NAMESPACE_NAME)
               } catch {
                 throw new Error('Failed to generate self-signed CA certificate: generating job failed.')

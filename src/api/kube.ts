@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  **********************************************************************/
 
-import { ApiextensionsV1beta1Api, ApisApi, AppsV1Api, BatchV1Api, CoreV1Api, CustomObjectsApi, ExtensionsV1beta1Api, KubeConfig, Log, PortForward, RbacAuthorizationV1Api, V1beta1CustomResourceDefinition, V1beta1IngressList, V1ClusterRole, V1ClusterRoleBinding, V1ConfigMap, V1ConfigMapEnvSource, V1Container, V1DeleteOptions, V1Deployment, V1DeploymentList, V1DeploymentSpec, V1EnvFromSource, V1Job, V1JobSpec, V1LabelSelector, V1NamespaceList, V1ObjectMeta, V1PersistentVolumeClaimList, V1Pod, V1PodList, V1PodSpec, V1PodTemplateSpec, V1Role, V1RoleBinding, V1RoleRef, V1Secret, V1ServiceAccount, V1ServiceList, V1Subject, Watch } from '@kubernetes/client-node'
+import { ApiextensionsV1beta1Api, ApisApi, AppsV1Api, BatchV1Api, CoreV1Api, CustomObjectsApi, ExtensionsV1beta1Api, KubeConfig, Log, PortForward, RbacAuthorizationV1Api, V1beta1CustomResourceDefinition, V1beta1IngressList, V1ClusterRole, V1ClusterRoleBinding, V1ConfigMap, V1ConfigMapEnvSource, V1Container, V1DeleteOptions, V1Deployment, V1DeploymentList, V1DeploymentSpec, V1EnvFromSource, V1Job, V1JobSpec, V1LabelSelector, V1NamespaceList, V1ObjectMeta, V1PersistentVolumeClaimList, V1Pod, V1PodList, V1PodSpec, V1PodTemplateSpec, V1Role, V1RoleBinding, V1RoleRef, V1Secret, V1ServiceAccount, V1ServiceList, V1Subject, Watch, V1Service, V1beta1Ingress } from '@kubernetes/client-node'
 import { Cluster, Context } from '@kubernetes/client-node/dist/config_types'
 import axios, { AxiosRequestConfig } from 'axios'
 import { cli } from 'cli-ux'
@@ -69,9 +69,19 @@ export class KubeHelper {
     }
   }
 
-  async applyResource(yamlPath: string, opts = ''): Promise<void> {
-    const command = `kubectl apply -f ${yamlPath} ${opts}`
+  async applyResource(yamlPath: string, opts = '', namespace?: string): Promise<void> {
+    const command = `kubectl apply -f ${yamlPath} ${opts} ${namespace ? ' -n ' + namespace : ''}`
     await execa(command, { timeout: 30000, shell: true })
+  }
+
+  async createService(namespace: string, service: any): Promise<V1Service> {
+    const k8sCoreApi = this.kc.makeApiClient(CoreV1Api)
+    try {
+      const { body } = await k8sCoreApi.createNamespacedService(namespace, service)
+      return body
+    } catch (e) {
+      throw this.wrapK8sClientError(e)
+    }
   }
 
   async getServicesBySelector(labelSelector = '', namespace = ''): Promise<V1ServiceList> {
@@ -457,17 +467,17 @@ export class KubeHelper {
     }
   }
 
-  async createConfigMapFromFile(filePath: string, namespace = '') {
-    const yamlConfigMap = this.safeLoadFromYamlFile(filePath) as V1ConfigMap
+  async createConfigMap(namespace: string, confiMap: any): Promise<V1ConfigMap> {
     const k8sCoreApi = this.kc.makeApiClient(CoreV1Api)
     try {
-      return await k8sCoreApi.createNamespacedConfigMap(namespace, yamlConfigMap)
+      const { body } = await k8sCoreApi.createNamespacedConfigMap(namespace, confiMap)
+      return body
     } catch (e) {
       throw this.wrapK8sClientError(e)
     }
   }
 
-  async patchConfigMap(name: string, patch: any, namespace = '') {
+  async patchConfigMap(namespace: string, name: string, patch: any) {
     const k8sCoreApi = this.kc.makeApiClient(PatchedK8sApi)
     try {
       return await k8sCoreApi.patchNamespacedConfigMap(name, namespace, patch)
@@ -554,7 +564,7 @@ export class KubeHelper {
     return res.body.items[0].status.phase
   }
 
-  async getPodReadyConditionStatus(selector: string, namespace = ''): Promise<string> {
+  async getPodReadyConditionStatus(selector: string, namespace = ''): Promise<string | undefined> {
     const k8sCoreApi = this.kc.makeApiClient(CoreV1Api)
     let res
     try {
@@ -577,11 +587,11 @@ export class KubeHelper {
     }
 
     if (!res.body.items[0].status) {
-      throw new Error(`Get pods by selector "${selector}" returned a pod with an invalid state`)
+      return
     }
 
     if (!res.body.items[0].status.conditions || !(res.body.items[0].status.conditions.length > 0)) {
-      throw new Error(`Get pods by selector "${selector}" returned a pod with an invalid status.conditions`)
+      return
     }
 
     const conditions = res.body.items[0].status.conditions
@@ -590,8 +600,6 @@ export class KubeHelper {
         return condition.status
       }
     }
-
-    throw new Error(`Get pods by selector "${selector}" returned a pod without a status.condition of type "Ready"`)
   }
 
   async waitForPodPhase(selector: string, targetPhase: string, namespace = '', intervalMs = 500, timeoutMs = this.podWaitTimeout) {
@@ -632,9 +640,6 @@ export class KubeHelper {
       if (readyStatus === 'True') {
         return
       }
-      if (readyStatus !== 'False') {
-        throw new Error(`ERR_BAD_READY_STATUS: ${readyStatus} (True or False expected) `)
-      }
       await cli.wait(intervalMs)
     }
     throw new Error(`ERR_TIMEOUT: Timeout set to pod ready timeout ${this.podReadyTimeout}`)
@@ -646,9 +651,6 @@ export class KubeHelper {
       let readyStatus = await this.getPodReadyConditionStatus(selector, namespace)
       if (readyStatus === 'False') {
         return
-      }
-      if (readyStatus !== 'True') {
-        throw new Error(`ERR_BAD_READY_STATUS: ${readyStatus} (True or False expected) `)
       }
       await cli.wait(intervalMs)
     }
@@ -786,11 +788,11 @@ export class KubeHelper {
   }
 
   async createDeployment(name: string,
-                         image: string,
-                         serviceAccount: string,
-                         pullPolicy: string,
-                         configMapEnvSource: string,
-                         namespace: string) {
+    image: string,
+    serviceAccount: string,
+    pullPolicy: string,
+    configMapEnvSource: string,
+    namespace: string) {
     const k8sAppsApi = this.kc.makeApiClient(AppsV1Api)
     let deployment = new V1Deployment()
     deployment.metadata = new V1ObjectMeta()
@@ -877,6 +879,15 @@ export class KubeHelper {
     }
   }
 
+  async deleteAllJobs(namespace: string) {
+    const k8sBatchApi = this.kc.makeApiClient(BatchV1Api)
+    try {
+      await k8sBatchApi.deleteCollectionNamespacedJob(namespace)
+    } catch (e) {
+      throw this.wrapK8sClientError(e)
+    }
+  }
+
   async getDeploymentsBySelector(labelSelector = '', namespace = ''): Promise<V1DeploymentList> {
     const k8sAppsApi = this.kc.makeApiClient(AppsV1Api)
     try {
@@ -906,13 +917,7 @@ export class KubeHelper {
     throw new Error('ERR_GET_DEPLOYMENT')
   }
 
-  async createPod(name: string,
-                  image: string,
-                  serviceAccount: string,
-                  restartPolicy: string,
-                  pullPolicy: string,
-                  configMapEnvSource: string,
-                  namespace: string) {
+  async createPod(name: string, image: string, serviceAccount: string, restartPolicy: string, pullPolicy: string, configMapEnvSource: string, namespace: string) {
     const k8sCoreApi = this.kc.makeApiClient(CoreV1Api)
     let pod = new V1Pod()
     pod.metadata = new V1ObjectMeta()
@@ -939,19 +944,11 @@ export class KubeHelper {
     }
   }
 
-  async createJob(name: string,
-                  image: string,
-                  serviceAccount: string,
-                  namespace: string,
-                  backoffLimit = 0,
-                  restartPolicy = 'Never') {
-    const k8sBatchApi = this.kc.makeApiClient(BatchV1Api)
-
+  createJobSpec(name: string, image: string, serviceAccount: string, backoffLimit = 0, restartPolicy = 'Never'): any {
     const job = new V1Job()
     job.metadata = new V1ObjectMeta()
     job.metadata.name = name
     job.metadata.labels = { app: name }
-    job.metadata.namespace = namespace
     job.spec = new V1JobSpec()
     job.spec.ttlSecondsAfterFinished = 10
     job.spec.backoffLimit = backoffLimit
@@ -963,9 +960,14 @@ export class KubeHelper {
     jobContainer.image = image
     job.spec.template.spec.restartPolicy = restartPolicy
     job.spec.template.spec.containers = [jobContainer]
+    return job
+  }
 
+  async createJob(namespace: string, job: any): Promise<V1Job> {
+    const k8sBatchApi = this.kc.makeApiClient(BatchV1Api)
     try {
-      return await k8sBatchApi.createNamespacedJob(namespace, job)
+      const { body } = await k8sBatchApi.createNamespacedJob(namespace, job)
+      return body
     } catch (e) {
       throw this.wrapK8sClientError(e)
     }
@@ -1015,7 +1017,7 @@ export class KubeHelper {
       // Automatically stop watching after timeout
       const timeoutHandler = setTimeout(() => {
         request.abort()
-        reject(`Timeout reached while waiting for "${jobName}" job.`)
+        reject(new Error(`Timeout reached while waiting for "${jobName}" job.`))
       }, timeout * 1000)
 
       // Request job, for case if it is already ready
@@ -1057,6 +1059,16 @@ export class KubeHelper {
       return this.compare(body, name)
     } catch {
       return false
+    }
+  }
+
+  async createIngress(namespace: string, ingress: any): Promise<V1beta1Ingress> {
+    const k8sExtensionsApi = this.kc.makeApiClient(ExtensionsV1beta1Api)
+    try {
+      const { body } = await k8sExtensionsApi.createNamespacedIngress(namespace, ingress)
+      return body
+    } catch (e) {
+      throw this.wrapK8sClientError(e)
     }
   }
 
@@ -1525,6 +1537,16 @@ export class KubeHelper {
       return this.compare(body, name)
     } catch {
       return false
+    }
+  }
+
+  async createPersistentVolumeClaim(namespace: string, pvc: any) {
+    const k8sCoreApi = this.kc.makeApiClient(CoreV1Api)
+    try {
+      const { body } = await k8sCoreApi.createNamespacedPersistentVolumeClaim(namespace, pvc)
+      return body
+    } catch (e) {
+      throw this.wrapK8sClientError(e)
     }
   }
 

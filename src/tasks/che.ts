@@ -382,6 +382,13 @@ export class CheTasks {
         }
       },
       {
+        title: 'Delete all jobs',
+        task: async (_ctx: any, task: any) => {
+          await this.kube.deleteAllJobs(flags.chenamespace)
+          task.title = await `${task.title}...OK`
+        }
+      },
+      {
         title: 'Delete all services',
         task: async (_ctx: any, task: any) => {
           await this.kube.deleteAllServices(flags.chenamespace)
@@ -405,13 +412,16 @@ export class CheTasks {
         }
       },
       {
-        title: 'Delete configmaps for Eclipse Che server and operator',
+        title: 'Delete ConfigMap(s)',
         task: async (_ctx: any, task: any) => {
           if (await this.kube.getConfigMap('che', flags.chenamespace)) {
             await this.kube.deleteConfigMap('che', flags.chenamespace)
           }
           if (await this.kube.getConfigMap('che-operator', flags.chenamespace)) {
             await this.kube.deleteConfigMap('che-operator', flags.chenamespace)
+          }
+          if (await this.kube.getConfigMap('docker-registry', flags.chenamespace)) {
+            await this.kube.deleteConfigMap('docker-registry', flags.chenamespace)
           }
           task.title = await `${task.title}...OK`
         }
@@ -447,13 +457,16 @@ export class CheTasks {
         }
       },
       {
-        title: 'Delete PVC postgres-data and che-data-volume',
+        title: 'Delete PVC(s)',
         task: async (_ctx: any, task: any) => {
           if (await this.kube.persistentVolumeClaimExist('postgres-data', flags.chenamespace)) {
             await this.kube.deletePersistentVolumeClaim('postgres-data', flags.chenamespace)
           }
           if (await this.kube.persistentVolumeClaimExist('che-data-volume', flags.chenamespace)) {
             await this.kube.deletePersistentVolumeClaim('che-data-volume', flags.chenamespace)
+          }
+          if (await this.kube.persistentVolumeClaimExist('docker-registry-data', flags.chenamespace)) {
+            await this.kube.deletePersistentVolumeClaim('docker-registry-data', flags.chenamespace)
           }
           task.title = await `${task.title}...OK`
         }

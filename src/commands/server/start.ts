@@ -19,6 +19,7 @@ import * as path from 'path'
 import { cheDeployment, cheNamespace, listrRenderer } from '../../common-flags'
 import { DEFAULT_CHE_IMAGE, DEFAULT_CHE_OPERATOR_IMAGE } from '../../constants'
 import { CheTasks } from '../../tasks/che'
+import { DockerRegistryTasks } from '../../tasks/component-installers/docker-registry'
 import { InstallerTasks } from '../../tasks/installers/installer'
 import { ApiTasks } from '../../tasks/platforms/api'
 import { PlatformTasks } from '../../tasks/platforms/platform'
@@ -149,7 +150,13 @@ export default class Start extends Command {
     }),
     'skip-cluster-availability-check': flags.boolean({
       description: 'Skip cluster availability check. The check is a simple request to ensure the cluster is reachable.',
+    }),
+    offline: flags.boolean({
+      description: 'Deploy Eclipse Che and configure it to work offline',
       default: false
+    }),
+    'offline-stacks': flags.string({
+      description: 'Comma separated stacks names to work in offline mode.',
     })
   }
 
@@ -214,7 +221,9 @@ export default class Start extends Command {
       flags['self-signed-cert'] && ignoredFlags.push('--self-signed-cert')
       flags['os-oauth'] && ignoredFlags.push('--os-oauth')
       flags.tls && ignoredFlags.push('--tls')
-      flags.cheimage && ignoredFlags.push('--cheimage')
+
+      // don't print warning if default value is used
+      flags.cheimage && flags.cheimage !== DEFAULT_CHE_IMAGE && ignoredFlags.push('--cheimage')
       flags.debug && ignoredFlags.push('--debug')
       flags.domain && ignoredFlags.push('--domain')
       flags.multiuser && ignoredFlags.push('--multiuser')
@@ -247,6 +256,15 @@ export default class Start extends Command {
         }
       }
     }
+
+    if (flags.offline) {
+      if (flags.installer !== 'operator') {
+        this.error('--offline flag can be used only if installer is operator.')
+      }
+      if (!flags['offline-stacks']) {
+        this.error('--offline-stacks flag is required.\nSee more help with --help.')
+      }
+    }
   }
 
   async run() {
@@ -275,7 +293,7 @@ export default class Start extends Command {
     })
 
     this.setPlaformDefaults(flags)
-    let installTasks = new Listr(installerTasks.installTasks(flags, this), listrOptions)
+    // let installTasks = new Listr(installerTasks.installTasks(flags, this), listrOptions)
 
     const startDeployedCheTasks = new Listr([{
       title: '👀  Starting already deployed Eclipse Che',
@@ -323,6 +341,11 @@ export default class Start extends Command {
         this.log(`Eclipse Che logs will be available in '${ctx.directory}'`)
         await logsTasks.run(ctx)
         await eventTasks.run(ctx)
+
+        // should be initialized after platform tasks
+        const dockerRegistryTasks = new DockerRegistryTasks(flags)
+        let installTasks = new Listr(dockerRegistryTasks.getStartTasks(), listrOptions)
+
         await installTasks.run(ctx)
       } else if (!ctx.isCheReady
         || (ctx.isPostgresDeployed && !ctx.isPostgresReady)
@@ -336,7 +359,7 @@ export default class Start extends Command {
         await startDeployedCheTasks.run(ctx)
       }
 
-      await postInstallTasks.run(ctx)
+      // await postInstallTasks.run(ctx)
       this.log('Command server:start has completed successfully.')
     } catch (err) {
       this.error(`${err}\nInstallation failed, check logs in '${ctx.directory}'`)
