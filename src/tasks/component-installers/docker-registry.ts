@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  **********************************************************************/
 
-import { V1Job } from '@kubernetes/client-node'
+import { V1beta1Ingress, V1Job } from '@kubernetes/client-node'
 import axios, { AxiosInstance } from 'axios'
 import { cli } from 'cli-ux'
 import * as fs from 'fs'
@@ -16,7 +16,6 @@ import * as https from 'https'
 import * as yaml from 'js-yaml'
 import * as Listr from 'listr'
 import * as path from 'path'
-
 import { KubeHelper } from '../../api/kube'
 import { DEFAULT_CHE_IMAGE, DEFAULT_CHE_JWTPROXY_IMAGE, DEFAULT_CHE_KEYCLOAK_IMAGE, DEFAULT_CHE_PLUGIN_ARTIFACTS_BROKER_IMAGE, DEFAULT_CHE_PLUGIN_METADATA_BROKER_IMAGE, DEFAULT_CHE_POSTGRES_IMAGE } from '../../constants'
 
@@ -32,6 +31,7 @@ export class DockerRegistryTasks {
   protected offlineStacks: string
   protected axiosInstance: AxiosInstance
   protected headers: any
+  protected dockerRegistryUrl: string
 
   constructor(flags: any) {
     this.kubeHelper = new KubeHelper(flags)
@@ -43,7 +43,7 @@ export class DockerRegistryTasks {
     this.axiosInstance = axios.create({
       httpsAgent: new https.Agent({ rejectUnauthorized: false })
     })
-
+    this.dockerRegistryUrl = `${this.DOCKER_REGISTRY}-${this.cheNamespace}-${this.domain}`
   }
 
   getStartTasks(): ReadonlyArray<Listr.ListrTask> {
@@ -62,6 +62,7 @@ export class DockerRegistryTasks {
           await this.syncConfigMap()
           await this.syncPVC()
           await this.syncService()
+          await this.syncIngress()
           await this.syncDeployment()
           task.title = `${task.title}... done`
         }
@@ -103,6 +104,13 @@ export class DockerRegistryTasks {
     await this.kubeHelper.createService(this.cheNamespace, yamlData)
   }
 
+  private async syncIngress(): Promise<void> {
+    const yamlData = this.readResource('docker-registry-ingress.yml') as V1beta1Ingress
+    yamlData.spec!.tls = [{ hosts: [this.domain], secretName: 'che-tls' }]
+    yamlData.spec!.rules![0].host = this.dockerRegistryUrl
+    await this.kubeHelper.createIngress(this.cheNamespace, yamlData)
+  }
+
   private async syncDeployment(): Promise<void> {
     const resourcePath = path.join(this.templates, 'docker-registry', 'docker-registry-deployment.yml')
     await this.kubeHelper.createDeploymentFromFile(resourcePath, this.cheNamespace)
@@ -113,8 +121,7 @@ export class DockerRegistryTasks {
     const yamlData = this.readResource('docker-registry-job.yml') as V1Job
     yamlData.spec!.template!.spec!.containers![0].env = [
       { name: 'DOCKER_IMAGES', value: offlineImages },
-      { name: 'DOCKER_REGISTRY_SERVICE', value: this.DOCKER_REGISTRY },
-      { name: 'DOCKER_REGISTRY_PORT', value: '5000' },
+      { name: 'DOCKER_REGISTRY', value: this.dockerRegistryUrl },
     ]
     return this.kubeHelper.createJob(this.cheNamespace, yamlData)
   }
