@@ -1515,6 +1515,10 @@ ecc-jsbn@~0.1.1:
     jsbn "~0.1.0"
     safer-buffer "^2.1.0"
 
+"eclipse-che-devfile-registry@git://github.com/eclipse/che-devfile-registry#master":
+  version "0.0.0"
+  resolved "git://github.com/eclipse/che-devfile-registry#fe7a2e60eaf5fa2d25f064d8d017e6ea3500a6df"
+
 "eclipse-che-minishift@git://github.com/minishift/minishift#master":
   version "0.0.0"
   resolved "git://github.com/minishift/minishift#2410ad2f582558e0d8b001582d0f4e43311c81be"
@@ -1523,9 +1527,13 @@ ecc-jsbn@~0.1.1:
   version "0.0.0"
   resolved "git://github.com/eclipse/che-operator#e976064e182efb70ef697d68e4fbe74bff3d0de7"
 
+"eclipse-che-plugin-registry@git://github.com/eclipse/che-plugin-registry#master":
+  version "0.0.0"
+  resolved "git://github.com/eclipse/che-plugin-registry#0068f2dd1ab09512144022b10eee07f4dbdeeee9"
+
 "eclipse-che@git://github.com/eclipse/che#ab/offline":
   version "0.0.0"
-  resolved "git://github.com/eclipse/che#7db0c5962c51fbc25ee5462326e6b40ba5333e82"
+  resolved "git://github.com/eclipse/che#b2b86cd8d4e7ed6013deae2d7c59872435db7ae5"
 
 editorconfig@^0.15.0:
   version "0.15.3"

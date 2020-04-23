@@ -73,8 +73,6 @@ release() {
   apply_sed "s#quay.io/eclipse/che-server:.*#quay.io/eclipse/che-server:${RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-operator:.*#quay.io/eclipse/che-operator:${RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-keycloak:.*#quay.io/eclipse/che-keycloak:${RELEASE}'#g" src/constants.ts
-  apply_sed "s#quay.io/eclipse/che-devfile-registry:.*#quay.io/eclipse/che-devfile-registry:${RELEASE}'#g" src/constants.ts
-  apply_sed "s#quay.io/eclipse/che-plugin-registry:.*#quay.io/eclipse/che-plugin-registry:${RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-jwtproxy:.*#${JWT_PROXY_IMAGE_RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-plugin-metadata-broker:.*#${PLUGIN_BROKER_METADATA_IMAGE_RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-plugin-artifacts-broker:.*#${PLUGIN_BROKER_ARTIFACTS_IMAGE_RELEASE}'#g" src/constants.ts
@@ -82,6 +80,8 @@ release() {
   # now replace package.json dependencies
   apply_sed "s;github.com/eclipse/che#\(.*\)\",;github.com/eclipse/che#${RELEASE}\",;g" package.json
   apply_sed "s;github.com/eclipse/che-operator#\(.*\)\",;github.com/eclipse/che-operator#${RELEASE}\",;g" package.json
+  apply_sed "s;github.com/eclipse/che-devfile-registry#\(.*\)\",;github.com/eclipse/che-devfile-registry#${RELEASE}\",;g" package.json
+  apply_sed "s;github.com/eclipse/che-plugin-registry#\(.*\)\",;github.com/eclipse/che-plugin-registry#${RELEASE}\",;g" package.json
 
   # build
   yarn

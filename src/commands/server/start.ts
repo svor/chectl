@@ -19,11 +19,12 @@ import * as path from 'path'
 import { cheDeployment, cheNamespace, listrRenderer } from '../../common-flags'
 import { DEFAULT_CHE_IMAGE, DEFAULT_CHE_OPERATOR_IMAGE } from '../../constants'
 import { CheTasks } from '../../tasks/che'
-import { DockerRegistryTasks } from '../../tasks/component-installers/docker-registry'
+import { DockerRegistry } from '../../tasks/component-installers/docker-registry'
 import { InstallerTasks } from '../../tasks/installers/installer'
 import { ApiTasks } from '../../tasks/platforms/api'
 import { PlatformTasks } from '../../tasks/platforms/platform'
 import { isOpenshiftPlatformFamily } from '../../util'
+import { DevfileRegistry } from '../../tasks/component-installers/devfile-registry'
 
 export default class Start extends Command {
   static description = 'start Eclipse Che server'
@@ -156,7 +157,13 @@ export default class Start extends Command {
       default: false
     }),
     'offline-stacks': flags.string({
-      description: 'Comma separated stacks names to work in offline mode.',
+      description: 'Comma separated stacks names to work in offline mode. This flag is used only in conjunction with --offline flag.',
+    }),
+    'offline-devfile-registry-image': flags.string({
+      description: 'Devfile registry image that is built to work in offline mode. This flag is used only in conjunction with --offline flag.',
+    }),
+    'offline-plugin-registry-image': flags.string({
+      description: 'Plugin registry image that is built to work in offline mode. This flag is used only in conjunction with --offline flag.',
     })
   }
 
@@ -264,6 +271,22 @@ export default class Start extends Command {
       if (!flags['offline-stacks']) {
         this.error('--offline-stacks flag is required.\nSee more help with --help.')
       }
+      if (!flags['offline-devfile-registry-image']) {
+        this.error('--offline-devfile-registry-image flag is required.\nSee more help with --help.')
+      }
+      if (!flags['offline-plugin-registry-image']) {
+        this.error('--offline-plugin-registry-image flag is required.\nSee more help with --help.')
+      }
+    } else {
+      if (flags['offline-stacks']) {
+        this.error('--offline-stacks flag is used in conjunction with --offline flag only.\nSee more help with --help.')
+      }
+      if (flags['offline-devfile-registry-image']) {
+        this.error('--offline-devfile-registry-image flag is used in conjunction with --offline flag only.\nSee more help with --help.')
+      }
+      if (flags['offline-plugin-registry-image']) {
+        this.error('--offline-plugin-registry-image flag is used in conjunction with --offline flag only.\nSee more help with --help.')
+      }
     }
   }
 
@@ -293,7 +316,7 @@ export default class Start extends Command {
     })
 
     this.setPlaformDefaults(flags)
-    // let installTasks = new Listr(installerTasks.installTasks(flags, this), listrOptions)
+    let installTasks = new Listr(installerTasks.installTasks(flags, this), listrOptions)
 
     const startDeployedCheTasks = new Listr([{
       title: '👀  Starting already deployed Eclipse Che',
@@ -342,9 +365,16 @@ export default class Start extends Command {
         await logsTasks.run(ctx)
         await eventTasks.run(ctx)
 
-        // should be initialized after platform tasks
-        const dockerRegistryTasks = new DockerRegistryTasks(flags)
-        let installTasks = new Listr(dockerRegistryTasks.getStartTasks(), listrOptions)
+        if (flags.offline) {
+          // should be initialized after platform tasks (to set domain flag)
+          const dockerRegistry = new DockerRegistry(flags)
+          const devfileRegistry = new DevfileRegistry(flags)
+
+          let registriesInstallTasks = new Listr([], listrOptions)
+          registriesInstallTasks.add(dockerRegistry.getInstallTasks())
+          registriesInstallTasks.add(devfileRegistry.getInstallTasks())
+          await registriesInstallTasks.run(ctx)
+        }
 
         await installTasks.run(ctx)
       } else if (!ctx.isCheReady
@@ -359,7 +389,7 @@ export default class Start extends Command {
         await startDeployedCheTasks.run(ctx)
       }
 
-      // await postInstallTasks.run(ctx)
+      await postInstallTasks.run(ctx)
       this.log('Command server:start has completed successfully.')
     } catch (err) {
       this.error(`${err}\nInstallation failed, check logs in '${ctx.directory}'`)

@@ -10,8 +10,6 @@
 
 export const DEFAULT_CHE_IMAGE = 'quay.io/eclipse/che-server:nightly'
 export const DEFAULT_CHE_OPERATOR_IMAGE = 'quay.io/eclipse/che-operator:nightly'
-export const DEFAULT_CHE_DEVFILE_REGISTRY_IMAGE = 'quay.io/eclipse/che-devfile-registry:nightly'
-export const DEFAULT_CHE_PLUGIN_REGISTRY_IMAGE = 'quay.io/eclipse/che-plugin-registry:nightly'
 export const DEFAULT_CHE_KEYCLOAK_IMAGE = 'quay.io/eclipse/che-keycloak:nightly'
 export const DEFAULT_CHE_POSTGRES_IMAGE = 'centos/postgresql-96-centos7:9.6'
 export const DEFAULT_CHE_JWTPROXY_IMAGE = 'quay.io/eclipse/che-jwtproxy:fd94e60'

@@ -19,7 +19,7 @@ import * as path from 'path'
 import { KubeHelper } from '../../api/kube'
 import { DEFAULT_CHE_IMAGE, DEFAULT_CHE_JWTPROXY_IMAGE, DEFAULT_CHE_KEYCLOAK_IMAGE, DEFAULT_CHE_PLUGIN_ARTIFACTS_BROKER_IMAGE, DEFAULT_CHE_PLUGIN_METADATA_BROKER_IMAGE, DEFAULT_CHE_POSTGRES_IMAGE } from '../../constants'
 
-export class DockerRegistryTasks {
+export class DockerRegistry {
   readonly DOCKER_REGISTRY = 'docker-registry'
   readonly DOCKER_REGISTRY_SELECTOR = 'app=che,component=docker-registry'
   readonly DOCKER_REGISTRY_RESOURCES = ['configmap', 'pvc', 'service', 'ingress', 'deployment']
@@ -46,18 +46,18 @@ export class DockerRegistryTasks {
     this.dockerRegistryUrl = `${this.DOCKER_REGISTRY}-${this.cheNamespace}-${this.domain}`
   }
 
-  getStartTasks(): ReadonlyArray<Listr.ListrTask> {
+  getInstallTasks(): ReadonlyArray<Listr.ListrTask> {
     return [
       {
-        title: `Checking if ${this.DOCKER_REGISTRY} exists`,
+        title: 'Checking if Docker registry deployed',
         task: async (ctx: any, task: any) => {
-          const podExists = await this.kubeHelper.podsExistBySelector(this.DOCKER_REGISTRY_SELECTOR, this.cheNamespace)
-          ctx.dockerRegistryPodExists = podExists
-          task.title = `${task.title}... ${podExists ? '' : 'not'} found`
+          ctx.isDockerRegistryDeployed = await this.kubeHelper.podsExistBySelector(this.DOCKER_REGISTRY_SELECTOR, this.cheNamespace)
+          task.title = `${task.title}... done`
         }
       },
       {
-        title: `Deploying ${this.DOCKER_REGISTRY}`,
+        title: 'Deploying Docker registry',
+        skip: (ctx: any) => ctx.isDockerRegistryDeployed,
         task: async (task: any) => {
           await this.syncConfigMap()
           await this.syncPVC()
@@ -68,14 +68,15 @@ export class DockerRegistryTasks {
         }
       },
       {
-        title: `Waiting for ${this.DOCKER_REGISTRY}`,
-        task: async (task: any) => {
+        title: 'Waiting for Docker registry',
+        task: async (ctx: any, task: any) => {
           await this.kubeHelper.waitForPodReady(this.DOCKER_REGISTRY_SELECTOR, this.cheNamespace)
+          ctx.dockerRegistryUrl = this.dockerRegistryUrl
           task.title = `${task.title}... done`
         }
       },
       {
-        title: `Coping images into ${this.DOCKER_REGISTRY}`,
+        title: 'Coping images into Docker registry',
         task: async (task: any) => {
           const job = await this.syncJob()
           await this.kubeHelper.waitJob(job.metadata!.name!, this.cheNamespace, 10 * 60)
@@ -170,6 +171,7 @@ export class DockerRegistryTasks {
         if (yamlData.components) {
           for (const component of yamlData.components) {
             switch (component.type) {
+              // tslint:disable: ter-indent
               case 'dockerimage':
                 if (component.image) {
                   images.push(component.image)
