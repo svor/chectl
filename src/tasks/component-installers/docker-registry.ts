@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  **********************************************************************/
 
-import { V1beta1Ingress, V1Job } from '@kubernetes/client-node'
+import { V1beta1Ingress, V1Job, V1ConfigMap, V1ObjectMeta } from '@kubernetes/client-node'
 import axios, { AxiosInstance } from 'axios'
 import { cli } from 'cli-ux'
 import * as fs from 'fs'
@@ -80,6 +80,30 @@ export class DockerRegistry {
         task: async (task: any) => {
           const job = await this.syncJob()
           await this.kubeHelper.waitJob(job.metadata!.name!, this.cheNamespace, 10 * 60)
+          task.title = `${task.title}... done`
+        }
+      },
+      {
+        title: 'Creating devfile config map',
+        task: async (task: any) => {
+          const configMap = new V1ConfigMap()
+          configMap.metadata = new V1ObjectMeta()
+          configMap.metadata.name = 'devfile-registry'
+          configMap.metadata.labels = { app: 'che', component: 'devfile-registry' }
+          configMap.data = { CHE_DEVFILE_IMAGES_REGISTRY_URL: this.dockerRegistryUrl }
+          await this.kubeHelper.createConfigMap(this.cheNamespace, configMap)
+          task.title = `${task.title}... done`
+        }
+      },
+      {
+        title: 'Creating plugin config map',
+        task: async (task: any) => {
+          const configMap = new V1ConfigMap()
+          configMap.metadata = new V1ObjectMeta()
+          configMap.metadata.name = 'plugin-registry'
+          configMap.metadata.labels = { app: 'che', component: 'plugin-registry' }
+          configMap.data = { CHE_SIDECAR_CONTAINERS_REGISTRY_URL: this.dockerRegistryUrl }
+          await this.kubeHelper.createConfigMap(this.cheNamespace, configMap)
           task.title = `${task.title}... done`
         }
       }
@@ -155,8 +179,6 @@ export class DockerRegistry {
     images.push(...await this.getImagesByPluginId(cheVersion, `eclipse/che-theia/${cheTheiaVersion}`))
     images.push(...await this.getImagesByPluginId(cheVersion, `eclipse/che-machine-exec-plugin/${cheMachineExecVersion}`))
     images.push(...await this.getImagesByPluginId(cheVersion, 'eclipse/cloud-shell/latest'))
-    images.push(...await this.getImagesByPluginId(cheVersion, 'ws-skeleton/eclipseide/latest'))
-    images.push(...await this.getImagesByPluginId(cheVersion, 'ws-skeleton/jupyter/latest'))
     return images
   }
 

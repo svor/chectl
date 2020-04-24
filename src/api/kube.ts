@@ -1185,6 +1185,18 @@ export class KubeHelper {
         yamlCr.spec.auth.identityProviderImage = ''
       }
     }
+
+    if (flags.offline) {
+      yamlCr.spec.server.devfileRegistryImage = flags['offline-devfile-registry-image']
+      yamlCr.spec.server.pluginRegistryImage = flags['offline-plugin-registry-image']
+      if (!yamlCr.spec.server.customCheProperties) {
+        yamlCr.spec.server.customCheProperties = {}
+      }
+      yamlCr.spec.server.customCheProperties.CHE_WORKSPACE_PLUGIN__BROKER_PULL__POLICY = 'IfNotPreset'
+      yamlCr.spec.server.customCheProperties.CHE_WORKSPACE_SIDECAR_IMAGE__PULL__POLICY = 'IfNotPreset'
+      yamlCr.spec.server.customCheProperties.CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE_PULL__POLICY = 'IfNotPreset'
+    }
+
     const customObjectsApi = this.kc.makeApiClient(CustomObjectsApi)
     try {
       const { body } = await customObjectsApi.createNamespacedCustomObject('org.eclipse.che', 'v1', cheNamespace, 'checlusters', yamlCr)

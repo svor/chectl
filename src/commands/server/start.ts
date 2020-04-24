@@ -24,7 +24,6 @@ import { InstallerTasks } from '../../tasks/installers/installer'
 import { ApiTasks } from '../../tasks/platforms/api'
 import { PlatformTasks } from '../../tasks/platforms/platform'
 import { isOpenshiftPlatformFamily } from '../../util'
-import { DevfileRegistry } from '../../tasks/component-installers/devfile-registry'
 
 export default class Start extends Command {
   static description = 'start Eclipse Che server'
@@ -277,6 +276,12 @@ export default class Start extends Command {
       if (!flags['offline-plugin-registry-image']) {
         this.error('--offline-plugin-registry-image flag is required.\nSee more help with --help.')
       }
+      if (flags['devfile-registry-url']) {
+        this.error('--devfile-registry-url flag can not be used in offline mode.\nSee more help with --help.')
+      }
+      if (flags['plugin-registry-url']) {
+        this.error('--plugin-registry-url flag can not be used in offline mode.\nSee more help with --help.')
+      }
     } else {
       if (flags['offline-stacks']) {
         this.error('--offline-stacks flag is used in conjunction with --offline flag only.\nSee more help with --help.')
@@ -368,11 +373,9 @@ export default class Start extends Command {
         if (flags.offline) {
           // should be initialized after platform tasks (to set domain flag)
           const dockerRegistry = new DockerRegistry(flags)
-          const devfileRegistry = new DevfileRegistry(flags)
 
           let registriesInstallTasks = new Listr([], listrOptions)
           registriesInstallTasks.add(dockerRegistry.getInstallTasks())
-          registriesInstallTasks.add(devfileRegistry.getInstallTasks())
           await registriesInstallTasks.run(ctx)
         }
 
