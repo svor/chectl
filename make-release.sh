@@ -68,20 +68,20 @@ release() {
   PLUGIN_BROKER_METADATA_IMAGE_RELEASE=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.metadata.image" | cut -d = -f2)
   PLUGIN_BROKER_ARTIFACTS_IMAGE_RELEASE=$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.artifacts.image" | cut -d = -f2)
   JWT_PROXY_IMAGE_RELEASE=$(cat /tmp/che.properties | grep "che.server.secure_exposer.jwtproxy.image" | cut -d = -f2)
+  PVC_JOBS_IMAGE_RELEASE=$(cat /tmp/che.properties | grep "che.infra.kubernetes.pvc.jobs.image" | cut -d = -f2)
   rm /tmp/che.properties
 
   apply_sed "s#quay.io/eclipse/che-server:.*#quay.io/eclipse/che-server:${RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-operator:.*#quay.io/eclipse/che-operator:${RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-keycloak:.*#quay.io/eclipse/che-keycloak:${RELEASE}'#g" src/constants.ts
-  apply_sed "s#quay.io/eclipse/che-jwtproxy:.*#${JWT_PROXY_IMAGE_RELEASE}'#g" src/constants.ts
+  apply_sed "s#quay.io/eclipse/che-jwtproxy:.*#${JWT_PROXY_IMAGE_RELEASE}'#g" src/constants.tys
   apply_sed "s#quay.io/eclipse/che-plugin-metadata-broker:.*#${PLUGIN_BROKER_METADATA_IMAGE_RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-plugin-artifacts-broker:.*#${PLUGIN_BROKER_ARTIFACTS_IMAGE_RELEASE}'#g" src/constants.ts
+  apply_sed "s#DEFAULT_CHE_PVC_JOBS_IMAGE.*#DEFAULT_CHE_PVC_JOBS_IMAGE = '${PVC_JOBS_IMAGE_RELEASE}'#g" src/constants.ts
 
   # now replace package.json dependencies
   apply_sed "s;github.com/eclipse/che#\(.*\)\",;github.com/eclipse/che#${RELEASE}\",;g" package.json
   apply_sed "s;github.com/eclipse/che-operator#\(.*\)\",;github.com/eclipse/che-operator#${RELEASE}\",;g" package.json
-  apply_sed "s;github.com/eclipse/che-devfile-registry#\(.*\)\",;github.com/eclipse/che-devfile-registry#${RELEASE}\",;g" package.json
-  apply_sed "s;github.com/eclipse/che-plugin-registry#\(.*\)\",;github.com/eclipse/che-plugin-registry#${RELEASE}\",;g" package.json
 
   # build
   yarn

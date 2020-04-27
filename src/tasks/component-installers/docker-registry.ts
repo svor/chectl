@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  **********************************************************************/
 
-import { V1beta1Ingress, V1Job, V1ConfigMap, V1ObjectMeta } from '@kubernetes/client-node'
+import { V1beta1Ingress, V1Job} from '@kubernetes/client-node'
 import axios, { AxiosInstance } from 'axios'
 import { cli } from 'cli-ux'
 import * as fs from 'fs'
@@ -17,7 +17,7 @@ import * as yaml from 'js-yaml'
 import * as Listr from 'listr'
 import * as path from 'path'
 import { KubeHelper } from '../../api/kube'
-import { DEFAULT_CHE_IMAGE, DEFAULT_CHE_JWTPROXY_IMAGE, DEFAULT_CHE_KEYCLOAK_IMAGE, DEFAULT_CHE_PLUGIN_ARTIFACTS_BROKER_IMAGE, DEFAULT_CHE_PLUGIN_METADATA_BROKER_IMAGE, DEFAULT_CHE_POSTGRES_IMAGE } from '../../constants'
+import { DEFAULT_CHE_IMAGE, DEFAULT_CHE_JWTPROXY_IMAGE, DEFAULT_CHE_KEYCLOAK_IMAGE, DEFAULT_CHE_PLUGIN_ARTIFACTS_BROKER_IMAGE, DEFAULT_CHE_PLUGIN_METADATA_BROKER_IMAGE, DEFAULT_CHE_POSTGRES_IMAGE, DEFAULT_CHE_PVC_JOBS_IMAGE } from '../../constants'
 
 export class DockerRegistry {
   readonly DOCKER_REGISTRY = 'docker-registry'
@@ -31,7 +31,7 @@ export class DockerRegistry {
   protected offlineStacks: string
   protected axiosInstance: AxiosInstance
   protected headers: any
-  protected dockerRegistryUrl: string
+  protected containerRegistryHostname: string
 
   constructor(flags: any) {
     this.kubeHelper = new KubeHelper(flags)
@@ -43,7 +43,7 @@ export class DockerRegistry {
     this.axiosInstance = axios.create({
       httpsAgent: new https.Agent({ rejectUnauthorized: false })
     })
-    this.dockerRegistryUrl = `${this.DOCKER_REGISTRY}-${this.cheNamespace}-${this.domain}`
+    this.containerRegistryHostname = `${this.DOCKER_REGISTRY}-${this.cheNamespace}-${this.domain}`
   }
 
   getInstallTasks(): ReadonlyArray<Listr.ListrTask> {
@@ -71,7 +71,7 @@ export class DockerRegistry {
         title: 'Waiting for Docker registry',
         task: async (ctx: any, task: any) => {
           await this.kubeHelper.waitForPodReady(this.DOCKER_REGISTRY_SELECTOR, this.cheNamespace)
-          ctx.dockerRegistryUrl = this.dockerRegistryUrl
+          ctx.containerRegistryHostname = this.containerRegistryHostname
           task.title = `${task.title}... done`
         }
       },
@@ -80,30 +80,7 @@ export class DockerRegistry {
         task: async (task: any) => {
           const job = await this.syncJob()
           await this.kubeHelper.waitJob(job.metadata!.name!, this.cheNamespace, 10 * 60)
-          task.title = `${task.title}... done`
-        }
-      },
-      {
-        title: 'Creating devfile config map',
-        task: async (task: any) => {
-          const configMap = new V1ConfigMap()
-          configMap.metadata = new V1ObjectMeta()
-          configMap.metadata.name = 'devfile-registry'
-          configMap.metadata.labels = { app: 'che', component: 'devfile-registry' }
-          configMap.data = { CHE_DEVFILE_IMAGES_REGISTRY_URL: this.dockerRegistryUrl }
-          await this.kubeHelper.createConfigMap(this.cheNamespace, configMap)
-          task.title = `${task.title}... done`
-        }
-      },
-      {
-        title: 'Creating plugin config map',
-        task: async (task: any) => {
-          const configMap = new V1ConfigMap()
-          configMap.metadata = new V1ObjectMeta()
-          configMap.metadata.name = 'plugin-registry'
-          configMap.metadata.labels = { app: 'che', component: 'plugin-registry' }
-          configMap.data = { CHE_SIDECAR_CONTAINERS_REGISTRY_URL: this.dockerRegistryUrl }
-          await this.kubeHelper.createConfigMap(this.cheNamespace, configMap)
+          await this.kubeHelper.deleteJob(job.metadata!.name!, this.cheNamespace)
           task.title = `${task.title}... done`
         }
       }
@@ -131,8 +108,8 @@ export class DockerRegistry {
 
   private async syncIngress(): Promise<void> {
     const yamlData = this.readResource('docker-registry-ingress.yml') as V1beta1Ingress
-    yamlData.spec!.tls = [{ hosts: [this.domain], secretName: 'che-tls' }]
-    yamlData.spec!.rules![0].host = this.dockerRegistryUrl
+    // yamlData.spec!.tls = [{ hosts: [this.domain], secretName: 'che-tls' }]
+    yamlData.spec!.rules![0].host = this.containerRegistryHostname
     await this.kubeHelper.createIngress(this.cheNamespace, yamlData)
   }
 
@@ -146,7 +123,7 @@ export class DockerRegistry {
     const yamlData = this.readResource('docker-registry-job.yml') as V1Job
     yamlData.spec!.template!.spec!.containers![0].env = [
       { name: 'DOCKER_IMAGES', value: offlineImages },
-      { name: 'DOCKER_REGISTRY', value: this.dockerRegistryUrl },
+      { name: 'DOCKER_REGISTRY', value: this.containerRegistryHostname },
     ]
     return this.kubeHelper.createJob(this.cheNamespace, yamlData)
   }
@@ -160,9 +137,10 @@ export class DockerRegistry {
   private async getOfflineImages(): Promise<string> {
     const images: string[] = []
     images.push(DEFAULT_CHE_IMAGE)
-    images.push(DEFAULT_CHE_POSTGRES_IMAGE)
     images.push(DEFAULT_CHE_KEYCLOAK_IMAGE)
+    images.push(DEFAULT_CHE_POSTGRES_IMAGE)
     images.push(DEFAULT_CHE_JWTPROXY_IMAGE)
+    images.push(DEFAULT_CHE_PVC_JOBS_IMAGE)
     images.push(DEFAULT_CHE_PLUGIN_ARTIFACTS_BROKER_IMAGE)
     images.push(DEFAULT_CHE_PLUGIN_METADATA_BROKER_IMAGE)
 

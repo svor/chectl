@@ -1135,7 +1135,7 @@ export class KubeHelper {
     }
   }
 
-  async createCheClusterFromFile(filePath: string, flags: any, useDefaultCR: boolean) {
+  async createCheClusterFromFile(filePath: string, flags: any, ctx: any, useDefaultCR: boolean) {
     let yamlCr = this.safeLoadFromYamlFile(filePath)
     yamlCr = this.overrideDefaultValues(yamlCr, flags['che-operator-cr-patch-yaml'])
 
@@ -1192,9 +1192,10 @@ export class KubeHelper {
       if (!yamlCr.spec.server.customCheProperties) {
         yamlCr.spec.server.customCheProperties = {}
       }
-      yamlCr.spec.server.customCheProperties.CHE_WORKSPACE_PLUGIN__BROKER_PULL__POLICY = 'IfNotPreset'
-      yamlCr.spec.server.customCheProperties.CHE_WORKSPACE_SIDECAR_IMAGE__PULL__POLICY = 'IfNotPreset'
-      yamlCr.spec.server.customCheProperties.CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE_PULL__POLICY = 'IfNotPreset'
+      yamlCr.spec.server.airGapContainerRegistryHostname = ctx.containerRegistryHostname
+      yamlCr.spec.server.customCheProperties.CHE_WORKSPACE_PLUGIN__BROKER_PULL__POLICY = 'IfNotPresent'
+      yamlCr.spec.server.customCheProperties.CHE_WORKSPACE_SIDECAR_IMAGE__PULL__POLICY = 'IfNotPresent'
+      yamlCr.spec.server.customCheProperties.CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE_PULL__POLICY = 'IfNotPresent'
     }
 
     const customObjectsApi = this.kc.makeApiClient(CustomObjectsApi)
