@@ -17,6 +17,7 @@ export const DEFAULT_CHE_JWTPROXY_IMAGE = 'quay.io/eclipse/che-jwtproxy:fd94e60'
 export const DEFAULT_CHE_PLUGIN_METADATA_BROKER_IMAGE = 'quay.io/eclipse/che-plugin-metadata-broker:v3.1.2'
 export const DEFAULT_CHE_PLUGIN_ARTIFACTS_BROKER_IMAGE = 'quay.io/eclipse/che-plugin-artifacts-broker:v3.1.2'
 export const DEFAULT_CHE_PVC_JOBS_IMAGE = 'centos:centos7'
+export const UBI8_MINIMAL_IMAGE = 'registry.access.redhat.com/ubi8-minimal:8.1-409'
 
 // This image should be updated manually when needed.
 // Repository location: https://github.com/che-dockerfiles/che-cert-manager-ca-cert-generator-image

@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  **********************************************************************/
 
-import { V1beta1Ingress, V1Job} from '@kubernetes/client-node'
+import { V1beta1Ingress, V1Job } from '@kubernetes/client-node'
 import axios, { AxiosInstance } from 'axios'
 import { cli } from 'cli-ux'
 import * as fs from 'fs'
@@ -17,7 +17,7 @@ import * as yaml from 'js-yaml'
 import * as Listr from 'listr'
 import * as path from 'path'
 import { KubeHelper } from '../../api/kube'
-import { DEFAULT_CHE_IMAGE, DEFAULT_CHE_JWTPROXY_IMAGE, DEFAULT_CHE_KEYCLOAK_IMAGE, DEFAULT_CHE_PLUGIN_ARTIFACTS_BROKER_IMAGE, DEFAULT_CHE_PLUGIN_METADATA_BROKER_IMAGE, DEFAULT_CHE_POSTGRES_IMAGE, DEFAULT_CHE_PVC_JOBS_IMAGE } from '../../constants'
+import { DEFAULT_CHE_IMAGE, DEFAULT_CHE_JWTPROXY_IMAGE, DEFAULT_CHE_KEYCLOAK_IMAGE, DEFAULT_CHE_PLUGIN_ARTIFACTS_BROKER_IMAGE, DEFAULT_CHE_PLUGIN_METADATA_BROKER_IMAGE, DEFAULT_CHE_POSTGRES_IMAGE, DEFAULT_CHE_PVC_JOBS_IMAGE, UBI8_MINIMAL_IMAGE } from '../../constants'
 
 export class DockerRegistry {
   readonly DOCKER_REGISTRY = 'docker-registry'
@@ -43,7 +43,7 @@ export class DockerRegistry {
     this.axiosInstance = axios.create({
       httpsAgent: new https.Agent({ rejectUnauthorized: false })
     })
-    this.containerRegistryHostname = `${this.DOCKER_REGISTRY}-${this.cheNamespace}-${this.domain}`
+    this.containerRegistryHostname = `${this.DOCKER_REGISTRY}-${this.cheNamespace}.${this.domain}`
   }
 
   getInstallTasks(): ReadonlyArray<Listr.ListrTask> {
@@ -108,7 +108,7 @@ export class DockerRegistry {
 
   private async syncIngress(): Promise<void> {
     const yamlData = this.readResource('docker-registry-ingress.yml') as V1beta1Ingress
-    // yamlData.spec!.tls = [{ hosts: [this.domain], secretName: 'che-tls' }]
+    yamlData.spec!.tls = [{ hosts: [this.domain], secretName: 'che-tls' }]
     yamlData.spec!.rules![0].host = this.containerRegistryHostname
     await this.kubeHelper.createIngress(this.cheNamespace, yamlData)
   }
@@ -141,6 +141,7 @@ export class DockerRegistry {
     images.push(DEFAULT_CHE_POSTGRES_IMAGE)
     images.push(DEFAULT_CHE_JWTPROXY_IMAGE)
     images.push(DEFAULT_CHE_PVC_JOBS_IMAGE)
+    images.push(UBI8_MINIMAL_IMAGE)
     images.push(DEFAULT_CHE_PLUGIN_ARTIFACTS_BROKER_IMAGE)
     images.push(DEFAULT_CHE_PLUGIN_METADATA_BROKER_IMAGE)
 

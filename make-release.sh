@@ -71,13 +71,18 @@ release() {
   PVC_JOBS_IMAGE_RELEASE=$(cat /tmp/che.properties | grep "che.infra.kubernetes.pvc.jobs.image" | cut -d = -f2)
   rm /tmp/che.properties
 
+  local ubiMinimal8Version=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
+  local ubiMinimal8Release=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
+  UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:"$ubiMinimal8Version"-"$ubiMinimal8Release
+
   apply_sed "s#quay.io/eclipse/che-server:.*#quay.io/eclipse/che-server:${RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-operator:.*#quay.io/eclipse/che-operator:${RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-keycloak:.*#quay.io/eclipse/che-keycloak:${RELEASE}'#g" src/constants.ts
-  apply_sed "s#quay.io/eclipse/che-jwtproxy:.*#${JWT_PROXY_IMAGE_RELEASE}'#g" src/constants.tys
+  apply_sed "s#quay.io/eclipse/che-jwtproxy:.*#${JWT_PROXY_IMAGE_RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-plugin-metadata-broker:.*#${PLUGIN_BROKER_METADATA_IMAGE_RELEASE}'#g" src/constants.ts
   apply_sed "s#quay.io/eclipse/che-plugin-artifacts-broker:.*#${PLUGIN_BROKER_ARTIFACTS_IMAGE_RELEASE}'#g" src/constants.ts
   apply_sed "s#DEFAULT_CHE_PVC_JOBS_IMAGE.*#DEFAULT_CHE_PVC_JOBS_IMAGE = '${PVC_JOBS_IMAGE_RELEASE}'#g" src/constants.ts
+  apply_sed "s#UBI8_MINIMAL_IMAGE.*#UBI8_MINIMAL_IMAGE = '${UBI8_MINIMAL_IMAGE}'#g" src/constants.ts
 
   # now replace package.json dependencies
   apply_sed "s;github.com/eclipse/che#\(.*\)\",;github.com/eclipse/che#${RELEASE}\",;g" package.json
