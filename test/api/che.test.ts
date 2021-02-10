@@ -14,6 +14,7 @@ import { CheHelper } from '../../src/api/che'
 
 const namespace = 'che'
 const workspace = 'workspace-0123'
+const theiaContainer = 'theia-123'
 const cheURL = 'https://che-che.192.168.64.34.nip.io'
 const devfileServerURL = 'https://devfile-server'
 const devfileEndpoint = '/api/workspace/devfile'
@@ -129,6 +130,21 @@ describe('Eclipse Che helper', () => {
       .stub(kube.kubeConfig, 'makeApiClient', () => k8sApi)
       .stub(k8sApi, 'listNamespacedPod', () => ({ response: '', body: { items: [{ metadata: { labels: { 'che.workspace_id': `${workspace}1` } } }] } }))
       .do(() => ch.getWorkspacePodName(namespace, workspace))
+      .catch(/Pod is not found for the given workspace ID/)
+      .it('should fail if no workspace is found for the given ID')
+  })
+  describe('getWorkspacePodContainers', () => {
+    fancy
+      .stub(kube.kubeConfig, 'makeApiClient', () => k8sApi)
+      .stub(k8sApi, 'listNamespacedPod', () => ({ response: '', body: { items: [{ metadata: { name: 'pod-name', labels: { 'che.workspace_id': workspace } }, spec : { containers : [{ name: theiaContainer }] } }] } }))
+      .it('should return pod name where workspace with the given ID is running', async () => {
+        const wsPodContainers = await ch.getWorkspacePodContainers(namespace, workspace)
+        expect(wsPodContainers).to.contain(theiaContainer)
+      })
+    fancy
+      .stub(kube.kubeConfig, 'makeApiClient', () => k8sApi)
+      .stub(k8sApi, 'listNamespacedPod', () => ({ response: '', body: { items: [{ metadata: { name: 'pod-name', labels: { 'che.workspace_id': `${workspace}1` } }, spec : { containers : [{ name: theiaContainer }] } }] } }))
+      .do(() => ch.getWorkspacePodContainers(namespace, workspace))
       .catch(/Pod is not found for the given workspace ID/)
       .it('should fail if no workspace is found for the given ID')
   })
