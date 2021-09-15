@@ -284,9 +284,9 @@
     minimist "^1.2.0"
 
 "@eclipse-che/api@latest":
-  version "7.33.0"
-  resolved "https://registry.yarnpkg.com/@eclipse-che/api/-/api-7.33.0.tgz#6f9e264db3b97173045678b51280ce07615dbf19"
-  integrity sha512-KqCQ1xsQTl1809Xp14myCfzFQiA12NAnsqnZxnJPO/ALkHpFArMNIZ55yuiYup/QLpgB94vT/B8MM+XNj2+xKA==
+  version "7.36.1"
+  resolved "https://registry.yarnpkg.com/@eclipse-che/api/-/api-7.36.1.tgz#1036a1341e80f4e646af54e3ad998c25c5a78e1e"
+  integrity sha512-S8rwSZs96gOSnQVLFRR0sa67LW7ZvNIVxMDrNHf1OttprWRkFHscsxYEChwaHN8UB9hIp1gww5Qr0LeFR6dNQw==
 
 "@eslint/eslintrc@^0.4.2":
   version "0.4.2"
