@@ -1063,10 +1063,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/node-forge@^0.10.0":
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/@types/node-forge/-/node-forge-0.10.0.tgz#14888032a0e873a746b3a7f2b320b44d19ccb104"
-  integrity sha512-qxCPxN/6s/kY4Xud/1T6gIQtJjRz09UWSA8fTEfUXu4rC9EkFt4KA3s8bYLvkNJmIEWlVeuhZ1CFl7F5rp3FCA==
+"@types/node-forge@^0.10.9":
+  version "0.10.9"
+  resolved "https://registry.yarnpkg.com/@types/node-forge/-/node-forge-0.10.9.tgz#3c2e049a042ac27e731a9432dc3fd9b321307040"
+  integrity sha512-tXuzVcQgZkzgiWue5RKqQYfj74E3seuEpg3KESiOrZBRzRQgnH5S3n+wqMWPc4IJqZ+//EDiMUPzQq7eHSLAiA==
   dependencies:
     "@types/node" "*"
 
